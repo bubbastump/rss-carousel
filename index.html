@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed - Carousel Format</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .rss-feed { margin: 20px; max-width: 600px; text-align: center; position: relative; }
+        .rss-item { display: none; padding: 10px; }
+        .rss-title { font-size: 1.2em; font-weight: bold; }
+        .rss-date { color: gray; font-size: 0.9em; margin-top: 5px; }
+        .rss-description { margin-top: 10px; font-size: 0.95em; }
+        .carousel-controls { margin-top: 15px; }
+        .carousel-button { padding: 8px 15px; margin: 0 5px; cursor: pointer; font-size: 1em; }
+    </style>
+</head>
+<body>
+    <div class="rss-feed" id="rssFeed">
+        <h2>Latest Updates</h2>
+        <div id="carouselContent"></div>
+        <div class="carousel-controls">
+            <button class="carousel-button" onclick="prevItem()">Previous</button>
+            <button class="carousel-button" onclick="nextItem()">Next</button>
+        </div>
+    </div>
+
+    <script>
+        let currentIndex = 0;
+        let itemsArray = [];
+
+        async function fetchRSS() {
+            const rssUrl = "https://www.fpc.org/rss/rssAdultCounts.aspx";
+            const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`);
+            const data = await response.json();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(data.contents, "application/xml");
+
+            const items = xml.querySelectorAll("item");
+            const carouselContent = document.getElementById("carouselContent");
+
+            items.forEach((item, index) => {
+                const title = item.querySelector("title").textContent;
+                const link = item.querySelector("link").textContent;
+                const pubDate = item.querySelector("pubDate").textContent;
+                const description = item.querySelector("description").textContent;
+
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "rss-item";
+                itemDiv.innerHTML = `
+                    <div class="rss-title"><a href="${link}" target="_blank">${title}</a></div>
+                    <div class="rss-date">${new Date(pubDate).toLocaleDateString()}</div>
+                    <div class="rss-description">${description}</div>
+                `;
+
+                carouselContent.appendChild(itemDiv);
+                itemsArray.push(itemDiv);
+            });
+
+            if (itemsArray.length > 0) {
+                itemsArray[0].style.display = "block"; // Show the first item initially
+            }
+        }
+
+        function showItem(index) {
+            itemsArray.forEach((item, i) => {
+                item.style.display = i === index ? "block" : "none";
+            });
+        }
+
+        function prevItem() {
+            currentIndex = (currentIndex === 0) ? itemsArray.length - 1 : currentIndex - 1;
+            showItem(currentIndex);
+        }
+
+        function nextItem() {
+            currentIndex = (currentIndex === itemsArray.length - 1) ? 0 : currentIndex + 1;
+            showItem(currentIndex);
+        }
+
+        fetchRSS();
+    </script>
+</body>
+</html>
