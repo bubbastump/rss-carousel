@@ -13,6 +13,7 @@
         .rss-description { margin-top: 10px; font-size: 0.95em; }
         .carousel-controls { margin-top: 15px; }
         .carousel-button { padding: 8px 15px; margin: 0 5px; cursor: pointer; font-size: 1em; }
+        .error-message { color: red; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -23,6 +24,7 @@
             <button class="carousel-button" onclick="prevItem()">Previous</button>
             <button class="carousel-button" onclick="nextItem()">Next</button>
         </div>
+        <div id="errorMessage" class="error-message"></div>
     </div>
 
     <script>
@@ -31,34 +33,45 @@
 
         async function fetchRSS() {
             const rssUrl = "https://www.fpc.org/rss/rssAdultCounts.aspx";
-            const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`);
-            const data = await response.json();
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(data.contents, "application/xml");
+            const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("Failed to fetch the RSS feed.");
 
-            const items = xml.querySelectorAll("item");
-            const carouselContent = document.getElementById("carouselContent");
+                const data = await response.json();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(data.contents, "application/xml");
 
-            items.forEach((item, index) => {
-                const title = item.querySelector("title").textContent;
-                const link = item.querySelector("link").textContent;
-                const pubDate = item.querySelector("pubDate").textContent;
-                const description = item.querySelector("description").textContent;
+                const items = xml.querySelectorAll("item");
+                const carouselContent = document.getElementById("carouselContent");
 
-                const itemDiv = document.createElement("div");
-                itemDiv.className = "rss-item";
-                itemDiv.innerHTML = `
-                    <div class="rss-title"><a href="${link}" target="_blank">${title}</a></div>
-                    <div class="rss-date">${new Date(pubDate).toLocaleDateString()}</div>
-                    <div class="rss-description">${description}</div>
-                `;
+                if (items.length === 0) {
+                    throw new Error("No items found in the RSS feed.");
+                }
 
-                carouselContent.appendChild(itemDiv);
-                itemsArray.push(itemDiv);
-            });
+                items.forEach((item, index) => {
+                    const title = item.querySelector("title").textContent;
+                    const link = item.querySelector("link").textContent;
+                    const pubDate = item.querySelector("pubDate").textContent;
+                    const description = item.querySelector("description").textContent;
 
-            if (itemsArray.length > 0) {
-                itemsArray[0].style.display = "block"; // Show the first item initially
+                    const itemDiv = document.createElement("div");
+                    itemDiv.className = "rss-item";
+                    itemDiv.innerHTML = `
+                        <div class="rss-title"><a href="${link}" target="_blank">${title}</a></div>
+                        <div class="rss-date">${new Date(pubDate).toLocaleDateString()}</div>
+                        <div class="rss-description">${description}</div>
+                    `;
+
+                    carouselContent.appendChild(itemDiv);
+                    itemsArray.push(itemDiv);
+                });
+
+                if (itemsArray.length > 0) {
+                    itemsArray[0].style.display = "block"; // Show the first item initially
+                }
+            } catch (error) {
+                document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
             }
         }
 
@@ -82,3 +95,4 @@
     </script>
 </body>
 </html>
+
